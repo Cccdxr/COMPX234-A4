@@ -2,8 +2,50 @@ import socket
 import sys
 import os
 import random
+import base64     
+import threading  
 
 DATA_PORT_RANGE = (50000, 51000)
+
+def handle_file_transfer(filename, port, client_ip):
+    print(f"[THREAD] Starting transfer for {filename} on port {port}", flush=True)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("0.0.0.0", port))
+
+    with open(filename, "rb") as f:
+        while True:
+            try:
+                packet, addr = sock.recvfrom(2048)
+                if addr[0] != client_ip:
+                    continue  # 忽略非本客户端的包
+
+                message = packet.decode().strip()
+                print(f"[THREAD RECEIVE] {message}", flush=True)
+
+                parts = message.split(" ")
+                if parts[0] != "FILE" or parts[1] != filename:
+                    continue
+
+                if parts[2] == "CLOSE":
+                    response = f"FILE {filename} CLOSE_OK"
+                    sock.sendto(response.encode(), addr)
+                    break
+
+                elif parts[2] == "GET" and parts[3] == "START" and parts[5] == "END":
+                    start = int(parts[4])
+                    end = int(parts[6])
+                    f.seek(start)
+                    data = f.read(end - start + 1)
+                    encoded = base64.b64encode(data).decode()
+                    response = f"FILE {filename} OK START {start} END {end} DATA {encoded}"
+                    sock.sendto(response.encode(), addr)
+
+            except Exception as e:
+                print(f"[ERROR] Thread error: {e}", flush=True)
+                break
+
+    print(f"[THREAD] Transfer for {filename} finished.", flush=True)
+    sock.close()
 
 def start_server(host, port):
     # Create a UDP socket
@@ -28,11 +70,11 @@ def start_server(host, port):
                 else:
                     filename = parts[1]  
                     if os.path.isfile(filename):  # 检查文件是否存在
-                        file_size = os.path.getsize(filename)  # [NEW] 获取文件大小
-                        data_port = random.randint(*DATA_PORT_RANGE)  # [NEW] 随机分配数据传输端口
-                        response = f"OK {filename} SIZE {file_size} PORT {data_port}"  # [NEW] 构造成功响应
+                        file_size = os.path.getsize(filename)  # 获取文件大小
+                        data_port = random.randint(*DATA_PORT_RANGE)  #  随机分配数据传输端口
+                        response = f"OK {filename} SIZE {file_size} PORT {data_port}"  # 构造成功响应
                     else:
-                       response = f"ERR {filename} NOT_FOUND"  # [NEW]   
+                       response = f"ERR {filename} NOT_FOUND"     
             else:
                 response = "ERR UNKNOWN_COMMAND"
 
