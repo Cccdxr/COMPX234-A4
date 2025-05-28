@@ -1,12 +1,15 @@
 import socket
 import sys
+import os
+import random
+
+DATA_PORT_RANGE = (50000, 51000)
 
 def start_server(host, port):
     # Create a UDP socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # Bind the socket to the specified host and port
     server_socket.bind((host, port))
-    
     # Print server startup information
     print(f"[INFO] Server started on {host}:{port}", flush=True)
 
@@ -19,7 +22,17 @@ def start_server(host, port):
 
             # Check the command and respond accordingly
             if decoded_msg.startswith("DOWNLOAD"):
-                response = "OK dummy.pdf SIZE 123456 PORT 50001"
+                parts = decoded_msg.split(" ")  # 解析命令
+                if len(parts) != 2:  # 检查格式
+                    response = "ERR MALFORMED_REQUEST"  
+                else:
+                    filename = parts[1]  
+                    if os.path.isfile(filename):  # 检查文件是否存在
+                        file_size = os.path.getsize(filename)  # [NEW] 获取文件大小
+                        data_port = random.randint(*DATA_PORT_RANGE)  # [NEW] 随机分配数据传输端口
+                        response = f"OK {filename} SIZE {file_size} PORT {data_port}"  # [NEW] 构造成功响应
+                    else:
+                       response = f"ERR {filename} NOT_FOUND"  # [NEW]   
             else:
                 response = "ERR UNKNOWN_COMMAND"
 
