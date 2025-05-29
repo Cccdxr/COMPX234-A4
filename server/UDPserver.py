@@ -88,20 +88,6 @@ def start_server(host, port):
             server_socket.close() # Close the socket
             sys.exit(0) # Exit the program
 
-def send_and_receive(sock, message, server_address, retries=5, timeout=1.0):
-    attempt = 0
-    while attempt < retries:
-        try:
-            sock.settimeout(timeout)
-            sock.sendto(message.encode(), server_address)
-            response, _ = sock.recvfrom(4096)
-            return response.decode()
-        except socket.timeout:
-            print(f"[TIMEOUT] Retrying... ({attempt+1})", flush=True)
-            timeout *= 2
-            attempt += 1
-    return None
-
 
 if __name__ == "__main__":
     # Ensure the port argument is passed

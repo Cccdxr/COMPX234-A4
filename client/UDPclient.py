@@ -23,6 +23,22 @@ def main():
             filename = line.strip()
             if filename:
                 print(f"[INFO] Need to download: {filename}")
+                
+def send_and_receive(sock, message, server_address, retries=5, timeout=1.0):
+    attempt = 0
+    while attempt < retries:
+        try:
+            sock.settimeout(timeout)
+            sock.sendto(message.encode(), server_address)
+            response, _ = sock.recvfrom(4096)
+            return response.decode()
+        except socket.timeout:
+            attempt += 1
+            print(f"[TIMEOUT] Attempt {attempt}: No response. Retrying...", flush=True)
+            timeout *= 2  # 指数退避
+    print("[FAIL] No response after maximum retries.", flush=True)
+    return None
+
 
 if __name__ == "__main__":
     main()
