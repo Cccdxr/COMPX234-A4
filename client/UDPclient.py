@@ -22,7 +22,7 @@ def main():
         for line in filelist:
             filename = line.strip()
             if filename:
-                print(f"[INFO] Need to download: {filename}")
+                download_file(server_host, port, filename)
                 
 def send_and_receive(sock, message, server_address, retries=5, timeout=1.0):
     attempt = 0
@@ -38,6 +38,36 @@ def send_and_receive(sock, message, server_address, retries=5, timeout=1.0):
             timeout *= 2  # 指数退避
     print("[FAIL] No response after maximum retries.", flush=True)
     return None
+
+def download_file(server_host, port, filename):
+    print(f"[INFO] Requesting file: {filename}", flush=True)
+
+    # 创建 UDP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    # 构造并发送 DOWNLOAD 请求
+    request = f"DOWNLOAD {filename}"
+    response = send_and_receive(sock, request, (server_host, port))
+
+    if response is None:
+        print(f"[FAIL] No response from server for file {filename}")
+        return
+
+    parts = response.strip().split(" ")
+
+    if parts[0] == "ERR":
+        print(f"[ERROR] Server responded: {response}")
+    elif parts[0] == "OK":
+        fname = parts[1]
+        fsize = parts[3]
+        data_port = parts[5]
+        print(f"[OK] {fname} is available, size={fsize} bytes, data_port={data_port}")
+        # 下一步我们将使用这些信息下载数据
+    else:
+        print(f"[ERROR] Unexpected server response: {response}")
+    
+    sock.close()
+
 
 
 if __name__ == "__main__":
