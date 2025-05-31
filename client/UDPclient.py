@@ -59,14 +59,48 @@ def download_file(server_host, port, filename):
         print(f"[ERROR] Server responded: {response}")
     elif parts[0] == "OK":
         fname = parts[1]
-        fsize = parts[3]
-        data_port = parts[5]
-        print(f"[OK] {fname} is available, size={fsize} bytes, data_port={data_port}")
-        # 下一步我们将使用这些信息下载数据
+        filesize = int(parts[4])
+        data_port = int(parts[6])
+        print(f"[OK] {fname} is available, size={filesize} bytes, data_port={data_port}")
+        
+        # 创建用于数据传输的新 socket
+        data_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        
+        with open(filename, "wb") as f:
+            total_received = 0
+            block_size = 1000
+            
+            while total_received < filesize:
+                start = total_received
+                end = min(start + block_size - 1, filesize - 1)
+                
+                request = f"FILE {filename} GET START {start} END {end}"
+                response = send_and_receive(data_sock, request, (server_host, data_port))
+                
+                if response is None:
+                    print(f"[FAIL] No response for block {start}-{end}")
+                    break
+                
+                # 分割出 Base64 数据
+                if "DATA" not in response:
+                    print("[ERROR] Malformed data response:", response)
+                    break
+                
+                data_parts = response.split("DATA", 1)
+                encoded_data = data_parts[1].strip()
+                
+                # 解码写入文件
+                raw_data = base64.b64decode(encoded_data)
+                f.seek(start)
+                f.write(raw_data)
+                
+                total_received += len(raw_data)
+                print("*", end="", flush=True)                      
     else:
         print(f"[ERROR] Unexpected server response: {response}")
     
     sock.close()
+    print(f"\n[INFO] Finished downloading {filename}")
 
 
 
