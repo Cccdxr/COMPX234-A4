@@ -17,7 +17,7 @@ def handle_file_transfer(filename, port, client_ip):
             try:
                 packet, addr = sock.recvfrom(2048)
                 if addr[0] != client_ip:
-                    continue  # 忽略非本客户端的包
+                    continue  # Ignore packets not from this client
 
                 message = packet.decode().strip()
                 print(f"[THREAD RECEIVE] {message}", flush=True)
@@ -64,17 +64,17 @@ def start_server(host, port):
 
             # Check the command and respond accordingly
             if decoded_msg.startswith("DOWNLOAD"):
-                parts = decoded_msg.split(" ")  # 解析命令
-                if len(parts) != 2:  # 检查格式
+                parts = decoded_msg.split(" ")  # Parse command
+                if len(parts) != 2:  # Check format
                     response = "ERR MALFORMED_REQUEST"  
                 else:
                     filename = parts[1]  
-                    if os.path.isfile(filename):  # 检查文件是否存在
-                        file_size = os.path.getsize(filename)  # 获取文件大小
-                        data_port = random.randint(*DATA_PORT_RANGE)  #  随机分配数据传输端口
-                        response = f"OK {filename} SIZE {file_size} PORT {data_port}"  # 构造成功响应
+                    if os.path.isfile(filename):  # Check if file exists
+                        file_size = os.path.getsize(filename)  # Get file size
+                        data_port = random.randint(*DATA_PORT_RANGE)  #  Randomly assign data transfer port
+                        response = f"OK {filename} SIZE {file_size} PORT {data_port}"  # Construct success response
                         
-                        # 启动线程传输文件
+                        # Start a new thread for file transfer
                         thread = threading.Thread(
                             target=handle_file_transfer,
                             args=(filename, data_port, client_address[0])

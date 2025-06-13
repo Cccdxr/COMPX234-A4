@@ -5,7 +5,7 @@ import base64
 
 
 def main():
-    # 检查参数
+    # Check command-line arguments
     if len(sys.argv) != 4:
         print("Usage: python UDPclient.py <server_host> <port> <filelist.txt>")
         sys.exit(1)
@@ -14,12 +14,12 @@ def main():
     port = int(sys.argv[2])
     filelist_path = sys.argv[3]
     
-    # 检查文件列表文件是否存在
+    # Check if the file list exists
     if not os.path.exists(filelist_path):
         print("[ERROR] filelist.txt not found")
         sys.exit(1)
         
-    # 读取文件列表并打印
+    # Read and process each file name from the list
     with open(filelist_path, "r") as filelist:
         for line in filelist:
             filename = line.strip()
@@ -37,17 +37,17 @@ def send_and_receive(sock, message, server_address, retries=5, timeout=1.0):
         except socket.timeout:
             attempt += 1
             print(f"[TIMEOUT] Attempt {attempt}: No response. Retrying...", flush=True)
-            timeout *= 2  # 指数退避
+            timeout *= 2  # Exponential backoff
     print("[FAIL] No response after maximum retries.", flush=True)
     return None
 
 def download_file(server_host, port, filename):
     print(f"[INFO] Requesting file: {filename}", flush=True)
 
-    # 创建 UDP socket
+    # Create UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
-    # 构造并发送 DOWNLOAD 请求
+    # Construct and send DOWNLOAD request
     request = f"DOWNLOAD {filename}"
     response = send_and_receive(sock, request, (server_host, port))
 
@@ -71,7 +71,7 @@ def download_file(server_host, port, filename):
 
         print(f"[OK] {fname} is available, size={filesize} bytes, data_port={data_port}")
         
-        # 创建用于数据传输的新 socket
+        # Create a new socket for data transfer
         data_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
         with open(filename, "wb") as f:
@@ -89,7 +89,7 @@ def download_file(server_host, port, filename):
                     print(f"[FAIL] No response for block {start}-{end}")
                     break
                 
-                # 分割出 Base64 数据
+                # Extract Base64 encoded data
                 if "DATA" not in response:
                     print("[ERROR] Malformed data response:", response)
                     break
@@ -97,7 +97,7 @@ def download_file(server_host, port, filename):
                 data_parts = response.split("DATA", 1)
                 encoded_data = data_parts[1].strip()
                 
-                # 解码写入文件
+                # Decode and write data to file
                 raw_data = base64.b64decode(encoded_data)
                 f.seek(start)
                 f.write(raw_data)
@@ -105,7 +105,7 @@ def download_file(server_host, port, filename):
                 total_received += len(raw_data)
                 print("*", end="", flush=True) 
                 
-                # 下载完成后，发送 FILE CLOSE
+                # After download, send FILE CLOSE
                 close_request = f"FILE {filename} CLOSE"
                 close_response = send_and_receive(data_sock, close_request, (server_host, data_port))
                 
