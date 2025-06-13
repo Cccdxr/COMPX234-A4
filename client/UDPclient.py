@@ -1,6 +1,8 @@
 import socket
 import sys
 import os
+import base64
+
 
 def main():
     # 检查参数
