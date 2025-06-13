@@ -73,6 +73,13 @@ def start_server(host, port):
                         file_size = os.path.getsize(filename)  # 获取文件大小
                         data_port = random.randint(*DATA_PORT_RANGE)  #  随机分配数据传输端口
                         response = f"OK {filename} SIZE {file_size} PORT {data_port}"  # 构造成功响应
+                        
+                        # 启动线程传输文件
+                        thread = threading.Thread(
+                            target=handle_file_transfer,
+                            args=(filename, data_port, client_address[0])
+                        )
+                        thread.start()
                     else:
                        response = f"ERR {filename} NOT_FOUND"     
             else:
