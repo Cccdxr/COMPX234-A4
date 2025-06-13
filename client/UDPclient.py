@@ -61,8 +61,14 @@ def download_file(server_host, port, filename):
         print(f"[ERROR] Server responded: {response}")
     elif parts[0] == "OK":
         fname = parts[1]
-        filesize = int(parts[4])
-        data_port = int(parts[6])
+        
+        try:
+            filesize = int(parts[parts.index("SIZE") + 1])
+            data_port = int(parts[parts.index("PORT") + 1])
+        except (ValueError, IndexError) as e:
+            print(f"[ERROR] Malformed OK response: {response}")
+            return
+
         print(f"[OK] {fname} is available, size={filesize} bytes, data_port={data_port}")
         
         # 创建用于数据传输的新 socket
