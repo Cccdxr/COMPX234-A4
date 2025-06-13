@@ -95,7 +95,17 @@ def download_file(server_host, port, filename):
                 f.write(raw_data)
                 
                 total_received += len(raw_data)
-                print("*", end="", flush=True)                      
+                print("*", end="", flush=True) 
+                
+                # 下载完成后，发送 FILE CLOSE
+                close_request = f"FILE {filename} CLOSE"
+                close_response = send_and_receive(data_sock, close_request, (server_host, data_port))
+                
+                if close_response and close_response.strip() == f"FILE {filename} CLOSE_OK":
+                    print(f"\n[INFO] File {filename} closed successfully")
+                else:
+                    print(f"\n[WARN] CLOSE_OK not received for {filename}")
+                                     
     else:
         print(f"[ERROR] Unexpected server response: {response}")
     
